@@ -1,40 +1,35 @@
----
-title: "ETL - Dados de ações Índice Bovespa"
-output: html_notebook
----
+# ETL - Dados de ações Índice Bovespa
 
+#### Importando bibliotecas
 
-# Carregando biblioteca yahoo finance
 ```{r}
 library(yfR)
+library(plyr)
 library(dplyr)
-
 ```
 
-### Atribuindo retorno de dados para variável
-
-Variável 'composicao_ibov' com:
-
-- distinct() para remoção de duplicatas
-- yf_collection_get() para extração de composição de dados, coluna 'ticker'
-```{r}
-composicao_ibov<-distinct(yf_collection_get('IBOV')['ticker'],.keep_all = TRUE)$ticker
-```
-
-### Analisando o retorno
+#### Extração de dados
 
 ```{r}
-composicao_ibov
-length(composicao_ibov)
+#extraindo dados com api da lib yfr
+ibov<-yf_collection_get('IBOV')
 ```
 
-### Extraindo dados financeiros da composição do índice
-30 - dias
+#### Manipulando dados extraídos
+
 ```{r}
-acoes<-yf_get(
-  tickers=composicao_ibov,
-  first_date = Sys.Date() - 30,
-  last_date = Sys.Date()
-)
-```
+# dividindo o dataframe
+acoes<-dlply(ibov, .(ticker), function(x){rownames(x)=x$row; x$row=NULL; x})
 
+# filtrando colunas - iniciando pelo primeiro dataset
+dados_acoes<-acoes[[1]][,c(2,8)]
+
+# mudando nomes das colunas e adicionando ticker a coluna preço
+colnames(dados_acoes)<-c("Data",paste("Preço", acoes[[1]][8,1]))
+
+# iterando em loop para novo dataset
+for (i in 2:83){
+  dados_acoes_loop <- acoes[[i]][,c(2,8)]
+  colnames(dados_acoes_loop)<-c("Data",paste("Preço", acoes[[i]][8,1]))
+  dados_acoes<-merge(dados_acoes,dados_acoes_loop, by = "Data")}
+```
