@@ -1,0 +1,40 @@
+---
+title: "ETL - Dados de ações Índice Bovespa"
+output: html_notebook
+---
+
+
+# Carregando biblioteca yahoo finance
+```{r}
+library(yfR)
+library(dplyr)
+
+```
+
+### Atribuindo retorno de dados para variável
+
+Variável 'composicao_ibov' com:
+
+- distinct() para remoção de duplicatas
+- yf_collection_get() para extração de composição de dados, coluna 'ticker'
+```{r}
+composicao_ibov<-distinct(yf_collection_get('IBOV')['ticker'],.keep_all = TRUE)$ticker
+```
+
+### Analisando o retorno
+
+```{r}
+composicao_ibov
+length(composicao_ibov)
+```
+
+### Extraindo dados financeiros da composição do índice
+30 - dias
+```{r}
+acoes<-yf_get(
+  tickers=composicao_ibov,
+  first_date = Sys.Date() - 30,
+  last_date = Sys.Date()
+)
+```
+
