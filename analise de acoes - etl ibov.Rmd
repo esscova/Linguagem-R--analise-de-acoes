@@ -6,13 +6,17 @@
 library(yfR)
 library(plyr)
 library(dplyr)
+library(ggplot2)
 ```
 
 #### Extração de dados
 
-```{r}
-#extraindo dados com api da lib yfr
-ibov<-yf_collection_get('IBOV')
+```{r include=FALSE}
+#extraindo 1 ano de dados de ações
+
+ibov<-yf_collection_get('IBOV',
+                        first_date = Sys.Date() - 365,
+                        last_date = Sys.Date())
 ```
 
 #### Manipulando dados extraídos
@@ -32,4 +36,22 @@ for (i in 2:83){
   dados_acoes_loop <- acoes[[i]][,c(2,8)]
   colnames(dados_acoes_loop)<-c("Data",paste("Preço", acoes[[i]][8,1]))
   dados_acoes<-merge(dados_acoes,dados_acoes_loop, by = "Data")}
+```
+
+#### Visualizando dados
+
+```{r}
+# gerando graficos com exemplos de acoes
+bancos<-ggplot()+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço BBAS3.SA` , color ="Banco do Brasil"))+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço BBDC4.SA` , color ="Bradesco"))+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço ITUB4.SA` , color ="Itaú"))+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço SANB11.SA` , color ="Santander"))+
+  
+  xlab("Data")+
+  ylab("Preço")+
+  labs(color="Bancos")
+
+# plot
+print(bancos)
 ```
