@@ -1,0 +1,117 @@
+---
+Analisando preço de ações
+Índice Bovespa
+---
+
+```{r}
+#importando bibliotecas
+library(yfR)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+```
+
+#### Preço de negociação de todas as ações do índice
+
+```{r include=FALSE}
+#extraindo 1 ano de dados de ações
+ibov <- yf_collection_get('IBOV',
+                        first_date = Sys.Date() - 365,
+                        last_date = Sys.Date())
+```
+
+#### Manipulando dados extraídos
+
+```{r}
+# dividindo o dataframe
+acoes<-dlply(ibov, .(ticker), function(x){rownames(x)=x$row; x$row=NULL; x})
+
+# filtrando colunas - iniciando pelo primeiro dataset
+dados_acoes<-acoes[[1]][,c(2,8)]
+
+# mudando nomes das colunas e adicionando ticker a coluna preço
+colnames(dados_acoes)<-c("Data",paste("Preço", acoes[[1]][8,1]))
+
+# iterando em loop para novo dataset
+for (i in 2:83){
+  dados_acoes_loop <- acoes[[i]][,c(2,8)]
+  colnames(dados_acoes_loop)<-c("Data",paste("Preço", acoes[[i]][8,1]))
+  dados_acoes<-merge(dados_acoes,dados_acoes_loop, by = "Data")}
+```
+
+#### Visualizando amostra de dados
+
+```{r}
+# gerando graficos com exemplos de acoes
+bancos<-ggplot()+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço BBAS3.SA` , color ="Banco do Brasil"))+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço BBDC4.SA` , color ="Bradesco"))+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço ITUB4.SA` , color ="Itaú"))+
+  geom_line(data=dados_acoes, aes(x = Data, y = `Preço SANB11.SA` , color ="Santander"))+
+  
+  xlab("Data")+
+  ylab("Preço")+
+  labs(color="Bancos")
+
+# plot
+print(bancos)
+```
+
+#### Benchmarck indices
+
+```{r}
+indice_bovespa <- yf_get(tickers='^BVSP',
+               first_date = Sys.Date() - 365,
+                last_date = Sys.Date(),  
+)
+
+colnames(indice_bovespa)[2] = 'Data'
+colnames(indice_bovespa)[8] = 'IBOV'
+
+indice_sp500 <- yf_get(tickers='^GSPC',
+               first_date = Sys.Date() - 365,
+                last_date = Sys.Date(),  
+)
+colnames(indice_sp500)[2] = 'Data'
+colnames(indice_sp500)[8] = 'SP500'
+
+indice_bovespa <- indice_bovespa[,c(2,8)]
+indice_sp500 <- indice_sp500[,c(2,8)]
+
+
+```
+
+#### merge em indices e açoes
+
+```{r}
+ibov_sp500 <- merge(indice_bovespa, indice_sp500, by='Data')
+acoes_com_indices <- merge(ibov_sp500, dados_acoes, by='Data')
+```
+
+#### Normalizando preços
+
+```{r}
+normalizado <- acoes_com_indices[,-c(1)]
+
+total <- data.frame(lapply(normalizado, function(x) x/x[1]))
+total$Data <- acoes_com_indices$Data
+```
+
+#### Visualizando amostra de dados normalizados
+
+```{r}
+bancos<-ggplot()+
+  geom_line(data=total, aes(x = Data, y = Preço.BBAS3.SA, color ="Banco do Brasil"))+
+  geom_line(data=total, aes(x = Data, y = Preço.BBDC4.SA , color ="Bradesco"))+
+  geom_line(data=total, aes(x = Data, y = Preço.ITUB4.SA , color ="Itaú"))+
+  geom_line(data=total, aes(x = Data, y = Preço.SANB11.SA , color ="Santander"))+
+  geom_line(data=total, aes(x = Data, y = IBOV , color ="Ibov"))+
+  geom_line(data=total, aes(x = Data, y = SP500 , color ="SP500"))+
+  
+  xlab("Data")+
+  ylab("Preço")+
+  labs(color="Bancos")
+
+# plot
+print(bancos)
+```
